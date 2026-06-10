@@ -45,3 +45,7 @@ RAG/
 ├── data/
 ├── embeddings/
 └── README.md
+## Progress
+- Document Loading (TextLoader, DirectoryLoader, PyPDFLoader)
+- Text Splitting (RecursiveCharacterTextSplitter)
+- Embeddings (all-MiniLM-L6-v2, 384 dimensions)
