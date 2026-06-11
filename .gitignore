@@ -1,2 +1,8 @@
 *.pdf
 *.pdf
+__pycache__/
+*.pyc
+.env
+data/vector_store/
+*.pdf
+.ipynb_checkpoints/
