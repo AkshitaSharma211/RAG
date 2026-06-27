@@ -5,4 +5,4 @@ __pycache__/
 .env
 data/vector_store/
 *.pdf
-.ipynb_checkpoints/
+.ipynb_checkpoints/.env
