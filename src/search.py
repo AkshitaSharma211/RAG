@@ -1,40 +1,32 @@
 import os
 from dotenv import load_dotenv
-from src.vectorstore import FaissVectorStore
 from langchain_groq import ChatGroq
+import chromadb
+from sentence_transformers import SentenceTransformer
 
 load_dotenv()
 
 class RAGSearch:
-    def __init__(self, persist_dir: str = "faiss_store", embedding_model: str = "all-MiniLM-L6-v2", llm_model: str = "gemma2-9b-it"):
-        self.vectorstore = FaissVectorStore(persist_dir, embedding_model)
-        # Load or build vectorstore
-        faiss_path = os.path.join(persist_dir, "faiss.index")
-        meta_path = os.path.join(persist_dir, "metadata.pkl")
-        if not (os.path.exists(faiss_path) and os.path.exists(meta_path)):
-            from data_loader import load_all_documents
-            docs = load_all_documents("data")
-            self.vectorstore.build_from_documents(docs)
-        else:
-            self.vectorstore.load()
-        groq_api_key = ""
+    def __init__(self, persist_dir: str = "data/vector_store", collection_name: str = "pdf_documents", embedding_model: str = "all-MiniLM-L6-v2", llm_model: str = "llama-3.3-70b-versatile"):
+        self.model = SentenceTransformer(embedding_model)
+        self.client = chromadb.PersistentClient(path=persist_dir)
+        self.collection = self.client.get_or_create_collection(name=collection_name)
+        groq_api_key = os.getenv("GROQ_API_KEY")
         self.llm = ChatGroq(groq_api_key=groq_api_key, model_name=llm_model)
-        print(f"[INFO] Groq LLM initialized: {llm_model}")
+        print(f"[INFO] RAGSearch initialized. Documents in store: {self.collection.count()}")
 
     def search_and_summarize(self, query: str, top_k: int = 5) -> str:
-        results = self.vectorstore.query(query, top_k=top_k)
-        texts = [r["metadata"].get("text", "") for r in results if r["metadata"]]
-        context = "\n\n".join(texts)
-        if not context:
+        query_embedding = self.model.encode([query]).tolist()
+        results = self.collection.query(query_embeddings=query_embedding, n_results=top_k)
+        if not results['documents'] or not results['documents'][0]:
             return "No relevant documents found."
-        prompt = f"""Summarize the following context for the query: '{query}'\n\nContext:\n{context}\n\nSummary:"""
+        context = "\n\n".join(results['documents'][0])
+        prompt = f"""Use the following context to answer the question.\nContext:\n{context}\n\nQuestion: {query}\n\nAnswer:"""
         response = self.llm.invoke([prompt])
         return response.content
 
-# Example usage
 if __name__ == "__main__":
     rag_search = RAGSearch()
-    query = "What is attention mechanism?"
+    query = "What is video compression?"
     summary = rag_search.search_and_summarize(query, top_k=3)
     print("Summary:", summary)
-
