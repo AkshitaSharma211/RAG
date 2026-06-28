@@ -6,3 +6,6 @@ __pycache__/
 data/vector_store/
 *.pdf
 .ipynb_checkpoints/.env
+.venv311/
+Vector_store/
+data/vector_store/
